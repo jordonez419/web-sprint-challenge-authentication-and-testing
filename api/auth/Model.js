@@ -12,9 +12,6 @@ const register = async (newUser) => {
     return findById(id)
 }
 
-// const logIn = (user) => {
-
-// }
 
 
 

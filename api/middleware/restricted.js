@@ -57,6 +57,7 @@ const checkUsername = (req, res, next) => {
         res.status(422).json({ message: 'Username taken' })
       }
       else {
+        req.user = response[0]
         next()
       }
     })
