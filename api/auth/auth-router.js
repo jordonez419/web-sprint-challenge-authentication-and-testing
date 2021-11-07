@@ -1,7 +1,36 @@
 const router = require('express').Router();
+const bcrypt = require('bcryptjs')
+const jwt = require("jsonwebtoken")
+const { jwtSecret } = require('../../secrets/index')
+const Model = require('./Model')
+const { checkPayload, checkUsername, checkUserExists } = require('../middleware/restricted')
 
-router.post('/register', (req, res) => {
-  res.end('implement register, please!');
+
+function makeToken(user) {
+  const payload = {
+    subject: user.id,
+    username: user.username
+  }
+  const options = {
+    expiresIn: "1d"
+  }
+  return jwt.sign(payload, jwtSecret, options)
+}
+
+
+// router.get('/:id', (req, res) => {
+//   const { id } = req.params
+//   Model.findById(id)
+//     .then(user => {
+//       res.status(200).json(user)
+//     })
+//     .catch(err => {
+//       res.status(500).json({ message: err.message })
+//     })
+// })
+
+router.post('/register', checkPayload, checkUsername, (req, res) => {
+  // res.end('implement register, please!');
   /*
     IMPLEMENT
     You are welcome to build additional middlewares to help with the endpoint's functionality.
@@ -27,10 +56,20 @@ router.post('/register', (req, res) => {
     4- On FAILED registration due to the `username` being taken,
       the response body should include a string exactly as follows: "username taken".
   */
+  let user = req.body
+  const hash = bcrypt.hashSync(req.body.password, 8)
+  user.password = hash
+  Model.register(user)
+    .then(newUser => {
+      res.status(201).json(newUser)
+    })
+    .catch(err => {
+      res.status(500).json({ message: err.message })
+    })
 });
 
-router.post('/login', (req, res) => {
-  res.end('implement login, please!');
+router.post('/login', checkPayload, checkUserExists, (req, res) => {
+  // res.end('implement login, please!');
   /*
     IMPLEMENT
     You are welcome to build additional middlewares to help with the endpoint's functionality.
@@ -54,6 +93,19 @@ router.post('/login', (req, res) => {
     4- On FAILED login due to `username` not existing in the db, or `password` being incorrect,
       the response body should include a string exactly as follows: "invalid credentials".
   */
+  console.log(req.user)
+  const { password, username } = req.body
+  // const { correctPassword } = req.user.password
+  if (bcrypt.compareSync(password, req.user.password)) {
+    const token = makeToken(req.user)
+    res.status(200).json({
+      message: `welcome, ${username}`,
+      token
+    })
+  }
+  else {
+    res.status(401).json({ message: 'Invalid credentials' })
+  }
 });
 
 module.exports = router;
